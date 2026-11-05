@@ -110,19 +110,19 @@ The design is synthesized using the open-source Yosys Open SYnthesis Suite (Yosy
 
 ### Gate Utilization Breakdown
 
-| Gate Type | Yosys Cell Primitive | Gate Count | Percentage |
-| :--- | :--- | :---: | :---: |
-| NAND | `$_NAND_` | 1,075 | 25.1% |
-| AND | `$_AND_` | 863 | 20.2% |
-| XOR | `$_XOR_` | 688 | 16.1% |
-| OR | `$_OR_` | 349 | 8.2% |
-| XNOR | `$_XNOR_` | 290 | 6.8% |
-| NOR | `$_NOR_` | 178 | 4.2% |
-| NOT | `$_NOT_` | 58 | 1.4% |
-| MUX | `$_MUX_` | 4 | 0.1% |
-| **Total Combinational** | - | **3,505** | **81.9%** |
-| **Total Sequential** | `$_DFF_` / `$_DFFE_` | **776** | **18.1%** |
-| **Total Design Cells** | - | **4,281** | **100.0%** |
+| Gate Type | Gate Count | Percentage |
+| :--- | :---: | :---: |
+| NAND | 1,075 | 25.1% |
+| AND | 863 | 20.2% |
+| XOR | 688 | 16.1% |
+| OR | 349 | 8.2% |
+| XNOR | 290 | 6.8% |
+| NOR | 178 | 4.2% |
+| Inverter (NOT) | 58 | 1.4% |
+| Multiplexer (MUX) | 4 | 0.1% |
+| **Total Combinational Gates** | **3,505** | **81.9%** |
+| **Flip-Flops (Sequential DFF/DFFE)** | **776** | **18.1%** |
+| **Total Standard Cells** | **4,281** | **100.0%** |
 
 ---
 
