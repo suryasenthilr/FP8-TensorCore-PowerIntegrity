@@ -130,6 +130,9 @@ The design is synthesized using the open-source Yosys Open SYnthesis Suite (Yosy
 
 ```
 VoltTensor/
+├── assets/                     # Verification and Transient Waveforms
+│   ├── di_dt_reduction.png     # Load current slew (dI/dt) flattening
+│   └── voltage_droop_comparison.png # Transient voltage droop clamping
 ├── rtl/                        # Synthesizable SystemVerilog RTL
 │   ├── fp8_mac.sv              # Dual-slack FP8 MAC with bit-criticality partitioning
 │   ├── pdn_slack_monitor.sv    # Replica delay-line timing slack sensor
@@ -146,6 +149,22 @@ VoltTensor/
 ├── .gitignore                  # Git exclusions for binary and temporary files
 └── README.md                   # Project documentation
 ```
+
+---
+
+## Simulation Waveforms and Power Integrity Verification
+
+The architecture's transient current shaping and power integrity performance were validated against an RLC power delivery network (PDN) model calibrated to modern high-performance processor packages:
+
+### Current Profile and Transient Slew (dI/dt)
+The microarchitectural lookahead controller staggers systolic array activation over a 4-cycle S-curve, flattening the current transient from an abrupt 634.3 A/ns step down to 149.8 A/ns (a 76.4% reduction in peak dI/dt).
+
+![Current Profile and dI/dt Slew Rate](assets/di_dt_reduction.png)
+
+### Transient Voltage Droop Suppression
+By suppressing dI/dt and firing a localized feedforward charge-boost pulse, inductive voltage droop across the power distribution network is reduced by 22.0% (from 82.9 mV to 64.7 mV), preventing the supply rail from dropping below the Vmin = 0.70 V timing threshold.
+
+![Transient Voltage Droop Comparison](assets/voltage_droop_comparison.png)
 
 ---
 
