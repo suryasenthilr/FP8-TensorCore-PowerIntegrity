@@ -1,0 +1,19 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Pytest cache
+.pytest_cache/
+
+# Simulation binaries and waveform dumps
+*.vvp
+*.vcd
+*.vpd
+*.fsdb
+
+# Temporary editor files
+.vscode/
+.idea/
+*.swp
+*~
