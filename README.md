@@ -1,110 +1,104 @@
-# VoltTensor: Workload-Aware Proactive dI/dt Smoothing & Undervolting for AI Tensor Accelerators
+# VoltTensor: Hardware Power Integrity and Undervolting Architecture for FP8 Tensor Cores
 
-[![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/)
-[![Tests](https://img.shields.io/badge/pytest-5%2F5%20passed-brightgreen.svg)]()
-[![Hardware](https://img.shields.io/badge/RTL-SystemVerilog-orange.svg)]()
-[![IEEE Paper](https://img.shields.io/badge/paper-IEEE%20Format-red.svg)]()
-
-> **Research Artifact for IEEE Submission:** A cross-layer semiconductor & microarchitecture framework tackling the GPU Power Delivery & Voltage Droop Wall in Large Language Model (LLM) Accelerators.
+VoltTensor is a digital VLSI hardware design implementing microarchitectural current slew (dI/dt) smoothing and dual-slack arithmetic for deep learning tensor accelerators. The architecture features an on-chip lookahead activity controller, a replica delay-line timing slack sensor, and a 4x4 FP8 (E4M3) systolic array synthesized down to standard logic gates.
 
 ---
 
-## ⚡ The Scientific Problem
+## Hardware Architecture
 
-In modern AI supercomputing packages (e.g., NVIDIA Hopper H100, Blackwell B200), total thermal power exceeds **700W–1200W+**, drawing over **1,000 Amperes at sub-1.0V supply rails**.
+The design is organized into four primary SystemVerilog modules under `rtl/`:
 
-During Transformer LLM inference, switching between memory-stalled Decode phases and dense Tensor Core GEMM bursts causes severe current surges:
-$$\frac{dI}{dt} > 600 \text{ A/ns}$$
+1. **Dual-Slack FP8 Multiply-Accumulate (`rtl/fp8_mac.sv`)**
+   - Implements IEEE FP8 E4M3 (1 sign, 4 exponent, 3 mantissa) arithmetic.
+   - Bifurcated timing paths: exponent and sign computation logic are protected with high timing margin, while the lower mantissa multiplier array features soft-slack centroid clamping under transient voltage droop.
+   - Accumulates into a 32-bit output register.
 
-This massive current transient excites parasitic inductances in the package and C4 microbumps ($L \frac{di}{dt}$), causing sharp **inductive voltage droops**. To avoid timing crashes, standard GPUs operate with an aggressive **15%–20% static voltage guardband** ($V_{op} = V_{min} + V_{guard}$). Because CMOS dynamic power is proportional to $V_{dd}^2$, **up to 30% of total GPU power is wasted purely as safety margin!**
+2. **On-Chip Timing Slack and Droop Monitor (`rtl/pdn_slack_monitor.sv`)**
+   - Replica delay-line sensor that measures local timing slack margins in real time.
+   - Compares delay tap propagation depth against programmable warning and critical thresholds.
+   - Logs droop events and asserts degradation flags when voltage margins tighten.
 
----
+3. **Microarchitectural Activity Smoothing Controller (`rtl/proactive_mas_ctrl.sv`)**
+   - Senses lookahead execution hints from the warp scheduler 4 cycles in advance.
+   - Drives a progressive 4-cycle S-curve row-enable envelope (25% -> 50% -> 75% -> 100%) to flatten current slew (dI/dt).
+   - Generates an auxiliary charge-boost control pulse to pre-charge local decoupling nodes prior to compute surges.
 
-## 🚀 The VoltTensor Solution
-
-VoltTensor solves this through a cross-layer semiconductor/microarchitecture co-design:
-
-1. **Microarchitectural Activity Smoothing (MAS):**
-   - An on-chip warp instruction lookahead unit forecasts incoming GEMM operations 4 clock cycles in advance.
-   - Generates a 4-cycle S-curve staggered systolic array activation envelope (25% → 50% → 75% → 100%), suppressing peak $dI/dt$ by **76.4%**.
-2. **Proactive Auxiliary Charge Injection:**
-   - Pre-charges localized on-die deep-trench decoupling capacitors right before current ramps up, clamping transient inductive droop by **22.0%**.
-3. **Dual-Slack FP8 (E4M3) MAC Processing Elements:**
-   - Asymmetric timing slack partitioning: Exponent/Sign paths are protected with low-$V_t$ boosted cells.
-   - Mantissa paths tolerate graceful centroid clamping under rare residual droops without numerical divergence.
-4. **Guardband Reclaim:**
-   - Slashing droop allows operating nominal $V_{dd}$ at **0.74V instead of 0.88V** ($140\text{ mV}$ guardband reclaimed), achieving **29.62% net dynamic energy savings** per token.
+4. **Systolic Tensor Core Tile (`rtl/systolic_tile.sv` & `rtl/volttensor_top.sv`)**
+   - Integrates a 4x4 array of processing elements (16 FP8 MACs).
+   - Top-level module (`volttensor_top.sv`) connects the activity smoothing FSM, delay-line sensor, systolic tile, and on-chip current telemetry estimation logic.
 
 ---
 
-## 📊 Key Results
+## Logic Synthesis with Yosys
 
-| Metric | Baseline GPU | Reactive Throttle | VoltTensor (Ours) | Improvement |
-| :--- | :---: | :---: | :---: | :---: |
-| **Nominal Supply ($V_{dd}$)** | 0.88 V | 0.84 V | **0.74 V** | **-140 mV Guardband** |
-| **Peak $dI/dt$ Current Slew** | 634.3 A/ns | 634.3 A/ns | **149.8 A/ns** | **-76.4% Transient Slew** |
-| **Peak Transient Droop** | 82.9 mV | 75.4 mV | **64.7 mV** | **-22.0% Voltage Droop** |
-| **Energy Consumption / Token**| 5.44 $\mu$J | 5.00 $\mu$J | **3.83 $\mu$J** | **29.62% Energy Savings** |
-| **SQNR Precision (FP8)** | 65.80 dB | 65.80 dB | **56.57 dB** | High Retention |
-| **LLM Output Cosine Similarity**| 1.00000 | 1.00000 | **1.00000** | Zero Functional Degradation |
-| **LLM Perplexity Impact ($\Delta$PPL)**| 0.000 | 0.000 | **+0.021** | Negligible ($< 0.05$ threshold) |
+The design is verified for synthesis using the open-source Yosys Open SYnthesis Suite.
+
+### Synthesis Results (`volttensor_top`)
+
+- **Total Cell Count:** 4,281 standard logic gates
+- **Flip-Flops:** 776 registers (739 DFFE, 37 DFF)
+- **Logic Gates Breakdown:**
+  - NAND Gates: 1,075
+  - AND Gates: 863
+  - XOR Gates: 688
+  - OR Gates: 349
+  - XNOR Gates: 290
+  - NOR Gates: 178
+  - NOT Inverters: 58
+  - Multiplexers: 4
+- **Synthesized Gate Netlist:** `syn/volttensor_netlist.v`
+- **Full Synthesis Report:** `syn/synthesis_report.txt`
 
 ---
 
-## 📁 Repository Structure
+## Directory Structure
 
 ```
-GPU-PROJECT/
-├── rtl/                        # Synthesizable SystemVerilog Hardware Modules
-│   ├── fp8_mac.sv              # Dual-slack FP8 (E4M3) MAC with bit-criticality paths
-│   ├── pdn_slack_monitor.sv    # On-chip replica delay-line timing slack sensor
-│   ├── proactive_mas_ctrl.sv   # Microarchitectural Activity Smoothing (MAS) FSM
-│   ├── systolic_tile.sv        # 4x4 Systolic Tensor Core with per-row gating
-│   └── volttensor_top.sv       # Top-level GPU compute tile with telemetry
-├── sim/                        # Physical Simulation & Workload Framework
-│   ├── pdn_model.py            # Distributed RLC PDN 4th-Order Runge-Kutta solver
-│   ├── workload_traces.py      # LLaMA-3 calibrated transient current profiles
-│   ├── sim_runner.py           # Co-simulation engine comparing Baseline vs VoltTensor
-│   └── evaluate_metrics.py     # Metric extraction & high-res publication figures
-├── results/                    # Generated Publication Figures & Waveforms
-│   ├── voltage_droop_comparison.png
-│   ├── di_dt_reduction.png
-│   ├── energy_savings_breakdown.png
-│   └── llm_accuracy_retention.png
-├── tests/                      # Automated Unit & Integration Test Suite
-│   └── test_volttensor.py      # Pytest validation for PDN, RTL FSM, and numerical tests
-├── paper/                      # Full Research Paper Ready for IEEE Submission
-│   ├── volttensor_paper.md     # Markdown research paper manuscript
-│   ├── volttensor_paper.tex    # Camera-ready IEEEtran LaTeX manuscript
-│   └── references.bib          # Comprehensive BibTeX citations
-└── README.md                   # This project overview
+VoltTensor/
+├── rtl/                        # Synthesizable SystemVerilog RTL
+│   ├── fp8_mac.sv              # Dual-slack FP8 MAC with bit-criticality partitioning
+│   ├── pdn_slack_monitor.sv    # Replica delay-line timing slack sensor
+│   ├── proactive_mas_ctrl.sv   # Microarchitectural Activity Smoothing FSM
+│   ├── systolic_tile.sv        # 4x4 Systolic Tensor Core array
+│   ├── volttensor_top.sv       # Top-level integrated GPU compute tile
+│   └── tb_volttensor.sv        # Standalone self-checking testbench
+├── syn/                        # Yosys Logic Synthesis Flow
+│   ├── synth.ys                # Yosys synthesis and ABC technology mapping script
+│   ├── run_synth.ps1           # Automated synthesis execution script
+│   ├── synthesis_report.txt    # Cell statistics, gate counts, and hierarchy report
+│   ├── volttensor_netlist.v    # Synthesized gate-level Verilog netlist
+│   └── volttensor_synth.json   # Structural JSON netlist
+├── .gitignore                  # Git exclusions for binary and temporary files
+└── README.md                   # Project documentation
 ```
 
 ---
 
-## 🛠️ Reproduction & Execution
+## Build and Simulation Instructions
 
-### 1. Run the Full Simulation & Generate Figures
+### 1. Functional Simulation (Icarus Verilog)
+
+Compile and run the self-checking SystemVerilog testbench:
+
+```powershell
+iverilog -g2012 -o volttensor_sim.vvp rtl/fp8_mac.sv rtl/pdn_slack_monitor.sv rtl/proactive_mas_ctrl.sv rtl/systolic_tile.sv rtl/volttensor_top.sv rtl/tb_volttensor.sv
+vvp volttensor_sim.vvp
+```
+
+The testbench initializes the tile, exercises the 4-cycle lookahead forecast, steps through the progressive activity ramp, injects a simulated transient droop event, and validates that the dual-slack logic prevents system-level overflow without errors.
+
+### 2. Gate-Level Synthesis (Yosys)
+
+Run the automated Yosys synthesis flow:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File syn/run_synth.ps1
+```
+
+Or invoke Yosys directly:
+
 ```bash
-python sim/evaluate_metrics.py
+yosys -s syn/synth.ys
 ```
-This executes the transient PDN differential equation solver across the baseline, reactive, and VoltTensor architectures, and exports 300-DPI publication figures to `results/`.
 
-### 2. Run the Automated Test Suite
-```bash
-python -m pytest tests/ -v
-```
-All 5 unit and integration tests will run, validating:
-- Numerical stability of the 4th-order Runge-Kutta PDN ODE solver
-- $dI/dt$ slew reduction compliance ($\ge 60\%$)
-- Dynamic energy savings verification ($\ge 25\%$)
-- FP8 Dual-Slack numerical accuracy and cosine similarity retention ($> 0.999$)
-- RTL state machine behavioral transitions
-
----
-
-## 📜 Publication Information
-The full research paper is formatted for **IEEE Transactions / Conference (DAC / ISLPED / TVLSI)** and is available in:
-- Markdown format: [`paper/volttensor_paper.md`](file:///c:/Users/surya/OneDrive/Documents/GPU-PROJECT/paper/volttensor_paper.md)
-- LaTeX format: [`paper/volttensor_paper.tex`](file:///c:/Users/surya/OneDrive/Documents/GPU-PROJECT/paper/volttensor_paper.tex)
-- BibTeX references: [`paper/references.bib`](file:///c:/Users/surya/OneDrive/Documents/GPU-PROJECT/paper/references.bib)
+The synthesized gate-level netlist is written to `syn/volttensor_netlist.v`, and the gate count report is logged to `syn/synthesis_report.txt`.

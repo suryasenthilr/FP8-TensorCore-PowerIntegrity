@@ -16,12 +16,12 @@ module systolic_tile #(
     input  logic                   rst_n,
     input  logic [ROWS-1:0]        row_en,            // From MAS controller: fine-grained per-row activity gate
     input  logic                   slack_degraded,    // From PDN delay monitor: droop slack violation flag
-    input  logic [7:0]             a_in [ROWS-1:0],   // Activation inputs (Row-wise)
-    input  logic [7:0]             b_in [COLS-1:0],   // Weight inputs (Column-wise)
-    input  logic [ACC_WIDTH-1:0]   c_in [COLS-1:0],   // Accumulation inputs
-    output logic [ACC_WIDTH-1:0]   c_out [COLS-1:0],  // Final accumulated results
-    output logic [COLS-1:0]        valid_out,
-    output logic                   array_error_flag   // Asserted if any PE encountered MSB overflow
+    input  logic [ROWS*8-1:0]          a_in,              // Flattened row activations (ROWS x 8-bit)
+    input  logic [COLS*8-1:0]          b_in,              // Flattened col weights (COLS x 8-bit)
+    input  logic [COLS*ACC_WIDTH-1:0]  c_in,              // Flattened acc inputs (COLS x ACC_WIDTH)
+    output logic [COLS*ACC_WIDTH-1:0]  c_out,             // Flattened acc outputs
+    output logic [COLS-1:0]            valid_out,
+    output logic                       array_error_flag   // Asserted if any PE encountered MSB overflow
 );
 
     // Internal interconnect registers for systolic dataflow
@@ -35,9 +35,9 @@ module systolic_tile #(
     genvar c;
     generate
         for (c = 0; c < COLS; c++) begin : gen_col_inputs
-            assign b_reg[0][c]   = b_in[c];
-            assign acc_reg[0][c] = c_in[c];
-            assign c_out[c]      = acc_reg[ROWS][c];
+            assign b_reg[0][c]   = b_in[(c+1)*8-1 : c*8];
+            assign acc_reg[0][c] = c_in[(c+1)*ACC_WIDTH-1 : c*ACC_WIDTH];
+            assign c_out[(c+1)*ACC_WIDTH-1 : c*ACC_WIDTH] = acc_reg[ROWS][c];
             assign valid_out[c]  = pe_valid[ROWS-1][c];
         end
     endgenerate
@@ -46,7 +46,7 @@ module systolic_tile #(
     genvar r;
     generate
         for (r = 0; r < ROWS; r++) begin : gen_row_inputs
-            assign a_reg[r][0] = a_in[r];
+            assign a_reg[r][0] = a_in[(r+1)*8-1 : r*8];
         end
     endgenerate
 

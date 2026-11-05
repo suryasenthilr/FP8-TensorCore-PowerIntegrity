@@ -23,13 +23,13 @@ module volttensor_top #(
     input  logic [7:0]             sim_droop_code,    // Delay tap sensor input from PDN
     
     // Systolic Matrix Inputs
-    input  logic [7:0]             a_inputs [ROWS-1:0],
-    input  logic [7:0]             b_inputs [COLS-1:0],
-    input  logic [ACC_WIDTH-1:0]   c_inputs [COLS-1:0],
+    input  logic [ROWS*8-1:0]          a_inputs,
+    input  logic [COLS*8-1:0]          b_inputs,
+    input  logic [COLS*ACC_WIDTH-1:0]  c_inputs,
     
     // Systolic Matrix Outputs
-    output logic [ACC_WIDTH-1:0]   c_outputs [COLS-1:0],
-    output logic [COLS-1:0]        results_valid,
+    output logic [COLS*ACC_WIDTH-1:0]  c_outputs,
+    output logic [COLS-1:0]            results_valid,
     output logic                   system_error,
     
     // Power & PDN Interface

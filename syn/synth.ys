@@ -1,0 +1,31 @@
+# Yosys Synthesis Script for VoltTensor
+# Target: volttensor_top (GPU Tensor Core Tile with Proactive MAS and PDN Monitor)
+
+# 1. Read SystemVerilog RTL sources
+read_verilog -sv rtl/fp8_mac.sv
+read_verilog -sv rtl/pdn_slack_monitor.sv
+read_verilog -sv rtl/proactive_mas_ctrl.sv
+read_verilog -sv rtl/systolic_tile.sv
+read_verilog -sv rtl/volttensor_top.sv
+
+# 2. Check design hierarchy
+hierarchy -check -top volttensor_top
+
+# 3. High-level synthesis
+synth -top volttensor_top
+
+# 4. Low-level technology mapping via ABC
+# Maps to standard logic gates: AND, NAND, OR, NOR, XOR, XNOR, MUX, DFF
+abc -g AND,NAND,OR,NOR,XOR,XNOR,MUX
+
+# 5. Clean unused wires and cells
+clean
+
+# 6. Report gate-level synthesis statistics
+stat
+
+# 7. Write synthesized gate-level Verilog netlist
+write_verilog -noattr syn/volttensor_netlist.v
+
+# 8. Write JSON design netlist
+write_json syn/volttensor_synth.json

@@ -21,17 +21,17 @@ module tb_volttensor;
     logic                   gemm_imminent;
     logic                   gemm_execute;
     logic [7:0]             sim_droop_code;
-    logic [7:0]             a_inputs [ROWS-1:0];
-    logic [7:0]             b_inputs [COLS-1:0];
-    logic [ACC_WIDTH-1:0]   c_inputs [COLS-1:0];
+    logic [ROWS*8-1:0]         a_inputs;
+    logic [COLS*8-1:0]         b_inputs;
+    logic [COLS*ACC_WIDTH-1:0] c_inputs;
     
-    wire  [ACC_WIDTH-1:0]   c_outputs [COLS-1:0];
-    wire  [COLS-1:0]        results_valid;
-    wire                    system_error;
-    wire                    charge_boost_pulse;
-    wire  [7:0]             current_demand_norm;
-    wire  [2:0]             mas_fsm_state;
-    wire  [31:0]            total_droop_events;
+    wire  [COLS*ACC_WIDTH-1:0] c_outputs;
+    wire  [COLS-1:0]           results_valid;
+    wire                       system_error;
+    wire                       charge_boost_pulse;
+    wire  [7:0]                current_demand_norm;
+    wire  [2:0]                mas_fsm_state;
+    wire  [31:0]               total_droop_events;
 
     // Instantiate Top-Level Device Under Test (DUT)
     volttensor_top #(
@@ -72,11 +72,9 @@ module tb_volttensor;
         gemm_execute   = 1'b0;
         sim_droop_code = 8'd0; // Nominal Vdd (no droop)
 
-        for (int i = 0; i < ROWS; i++) a_inputs[i] = 8'h00;
-        for (int j = 0; j < COLS; j++) begin
-            b_inputs[j] = 8'h00;
-            c_inputs[j] = 32'h00000000;
-        end
+        a_inputs       = '0;
+        b_inputs       = '0;
+        c_inputs       = '0;
 
         // Reset Pulse
         #(CLK_PERIOD * 4);
@@ -99,8 +97,8 @@ module tb_volttensor;
         gemm_execute = 1'b1;
         
         // Provide FP8 input data (E4M3 format: 0x38 = 1.0, 0x40 = 2.0)
-        for (int i = 0; i < ROWS; i++) a_inputs[i] = 8'h38; // 1.0 in FP8 E4M3
-        for (int j = 0; j < COLS; j++) b_inputs[j] = 8'h40; // 2.0 in FP8 E4M3
+        a_inputs = {ROWS{8'h38}}; // 1.0 in FP8 E4M3 replicated across rows
+        b_inputs = {COLS{8'h40}}; // 2.0 in FP8 E4M3 replicated across cols
 
         for (int cycle = 0; cycle < 5; cycle++) begin
             #(CLK_PERIOD);
