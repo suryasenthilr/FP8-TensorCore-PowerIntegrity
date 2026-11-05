@@ -60,33 +60,13 @@ Current Demand     |   15 (Quiescent)|      70      |     125      |     180    
 
 ## Hardware Submodule Breakdown
 
-The RTL source files are located in `rtl/`:
-
-1. **Dual-Slack FP8 Multiply-Accumulate (`rtl/fp8_mac.sv`)**
-   - Implements IEEE FP8 E4M3 arithmetic (1 sign bit, 4 exponent bits with bias 7, 3 mantissa bits).
-   - Bifurcated timing paths:
-     - **High-Slack Path (Sign and Exponent):** Fast evaluation core with guaranteed timing margin against voltage droop to eliminate exponent underflow and overflow errors.
-     - **Soft-Slack Path (Mantissa Array):** Dual-slack multiplier array. Under severe droop conditions flagged by the delay sensor, the lowest 2 mantissa bits gracefully clamp to the centroid value (`2'b10`) to eliminate setup-time violations without pipeline stalls.
-   - Accumulates into a 32-bit register.
-
-2. **On-Chip Timing Slack and Droop Monitor (`rtl/pdn_slack_monitor.sv`)**
-   - Tunable replica delay-line sensor modeling critical-path propagation.
-   - Evaluates real-time timing slack by sampling pulse travel depth across 32 delay taps.
-   - Generates early warning (`slack_warning`) and critical droop (`slack_critical`) alerts.
-   - Maintains an on-chip cumulative droop event counter (`total_droop_events`).
-
-3. **Microarchitectural Activity Smoothing Controller (`rtl/proactive_mas_ctrl.sv`)**
-   - Implements a five-state FSM: `IDLE`, `PRE_BOOST`, `RAMPING_UP`, `FULL_EXEC`, and `DAMPING`.
-   - Generates progressive per-row clock gates (`row_enable_mask[3:0]`).
-   - Drives feedforward charge injection (`charge_boost_pulse`) 1 cycle prior to compute surges.
-   - Includes transient recovery throttling if the PDN monitor detects critical slack collapse.
-
-4. **Systolic Tensor Core Tile (`rtl/systolic_tile.sv`)**
-   - 2D grid containing 16 dual-slack FP8 processing elements arranged in a 4x4 topology.
-   - Implements horizontal activation propagation, vertical weight propagation, and column-wise accumulation.
-
-5. **Top-Level Integrated Tile (`rtl/volttensor_top.sv`)**
-   - Integrates the FSM controller, delay-line sensor, systolic tile, and current estimation logic.
+| Module | Source File | Description |
+| :--- | :--- | :--- |
+| **Dual-Slack MAC** | [`rtl/fp8_mac.sv`](rtl/fp8_mac.sv) | IEEE FP8 E4M3 arithmetic (1 sign, 4 exponent, 3 mantissa). Exponent/sign evaluated with high timing slack. Mantissa array gracefully clamps lower 2 bits to centroid value (`2'b10`) during droop alerts. Accumulates into 32-bit output. |
+| **PDN Slack Monitor** | [`rtl/pdn_slack_monitor.sv`](rtl/pdn_slack_monitor.sv) | 32-tap replica delay-line sensor measuring propagation delay across on-chip voltage variations. Generates early warning (`slack_warning`) and critical droop (`slack_critical`) alerts; logs total droop events. |
+| **MAS Controller** | [`rtl/proactive_mas_ctrl.sv`](rtl/proactive_mas_ctrl.sv) | 5-state FSM (`IDLE`, `PRE_BOOST`, `RAMPING_UP`, `FULL_EXEC`, `DAMPING`) driving 4-cycle S-curve row-gating (`row_enable_mask[3:0]`) and feedforward charge-boost pulse (`charge_boost_pulse`). |
+| **Systolic Array Tile** | [`rtl/systolic_tile.sv`](rtl/systolic_tile.sv) | 4x4 array integrating 16 dual-slack FP8 processing elements with horizontal activation propagation, vertical weight propagation, and column accumulation. |
+| **Top-Level Module** | [`rtl/volttensor_top.sv`](rtl/volttensor_top.sv) | Integrates the MAS FSM, delay-line monitor, systolic array tile, and current telemetry estimation logic. |
 
 ---
 
@@ -114,24 +94,35 @@ The RTL source files are located in `rtl/`:
 
 ## Logic Synthesis with Yosys
 
-The RTL was synthesized using the open-source Yosys Open SYnthesis Suite (Yosys 0.70+286) targeting generic logic gates via ABC technology mapping.
+The design is synthesized using the open-source Yosys Open SYnthesis Suite (Yosys 0.70+286) with ABC technology mapping targeting generic logic gates.
 
-### Synthesis Summary (`volttensor_top`)
+### Synthesis Overview
 
-- **Total Cell Count:** 4,281 standard logic gates
-- **Sequential Elements:** 776 registers (739 DFFE, 37 DFF)
-- **Gate Breakdown:**
-  - NAND Gates (`$_NAND_`): 1,075
-  - AND Gates (`$_AND_`): 863
-  - XOR Gates (`$_XOR_`): 688
-  - OR Gates (`$_OR_`): 349
-  - XNOR Gates (`$_XNOR_`): 290
-  - NOR Gates (`$_NOR_`): 178
-  - NOT Inverters (`$_NOT_`): 58
-  - Multiplexers (`$_MUX_`): 4
-- **Synthesized Netlist:** `syn/volttensor_netlist.v`
-- **Structural JSON Model:** `syn/volttensor_synth.json`
-- **Full Synthesis Report:** `syn/synthesis_report.txt`
+| Metric / Artifact | Value / File Path | Description |
+| :--- | :--- | :--- |
+| **Top-Level Entity** | `volttensor_top` | 4x4 FP8 Tensor Core Tile with MAS & PDN Monitor |
+| **Total Standard Cells** | 4,281 gates | Full design cell count |
+| **Sequential Registers** | 776 Flip-Flops | 739 DFFE (clock-enabled), 37 DFF |
+| **Combinational Gates** | 3,505 gates | Logic gates mapped via ABC |
+| **Gate-Level Netlist** | [`syn/volttensor_netlist.v`](syn/volttensor_netlist.v) | Synthesized Verilog netlist |
+| **Structural Model** | [`syn/volttensor_synth.json`](syn/volttensor_synth.json) | Structural JSON netlist |
+| **Synthesis Log Report** | [`syn/synthesis_report.txt`](syn/synthesis_report.txt) | Complete cell statistics and hierarchy log |
+
+### Gate Utilization Breakdown
+
+| Gate Type | Yosys Cell Primitive | Gate Count | Percentage |
+| :--- | :--- | :---: | :---: |
+| NAND | `$_NAND_` | 1,075 | 25.1% |
+| AND | `$_AND_` | 863 | 20.2% |
+| XOR | `$_XOR_` | 688 | 16.1% |
+| OR | `$_OR_` | 349 | 8.2% |
+| XNOR | `$_XNOR_` | 290 | 6.8% |
+| NOR | `$_NOR_` | 178 | 4.2% |
+| NOT | `$_NOT_` | 58 | 1.4% |
+| MUX | `$_MUX_` | 4 | 0.1% |
+| **Total Combinational** | - | **3,505** | **81.9%** |
+| **Total Sequential** | `$_DFF_` / `$_DFFE_` | **776** | **18.1%** |
+| **Total Design Cells** | - | **4,281** | **100.0%** |
 
 ---
 
