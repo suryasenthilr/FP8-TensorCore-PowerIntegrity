@@ -1,6 +1,6 @@
 //=============================================================================
 // Module: fp8_mac
-// Project: VoltTensor - Workload-Aware Proactive dI/dt Smoothing & Undervolting
+// Project: FP8-TensorCore-PowerIntegrity - Workload-Aware Proactive dI/dt Smoothing & Undervolting
 // Description: Dual-Slack FP8 (E4M3) Multiply-Accumulate Unit with Asymmetric
 //              Timing Slack Paths for Graceful Undervolting Under Voltage Droop.
 //=============================================================================

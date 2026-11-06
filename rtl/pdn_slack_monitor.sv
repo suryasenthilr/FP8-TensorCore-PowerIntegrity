@@ -1,6 +1,6 @@
 //=============================================================================
 // Module: pdn_slack_monitor
-// Project: VoltTensor - Workload-Aware Proactive dI/dt Smoothing & Undervolting
+// Project: FP8-TensorCore-PowerIntegrity - Workload-Aware Proactive dI/dt Smoothing & Undervolting
 // Description: Real-Time On-Chip Delay-Line Voltage Droop & Timing Slack Monitor.
 //              Emulates a tunable inverter-chain critical-path replica sensor.
 //=============================================================================

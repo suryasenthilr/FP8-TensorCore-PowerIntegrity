@@ -1,6 +1,6 @@
 //=============================================================================
 // Testbench: tb_volttensor
-// Project: VoltTensor - Workload-Aware Proactive dI/dt Smoothing & Undervolting
+// Project: FP8-TensorCore-PowerIntegrity - Workload-Aware Proactive dI/dt Smoothing & Undervolting
 // Description: Standalone SystemVerilog testbench for simulating volttensor_top.
 //              Can be run in QuestaSim, ModelSim, Vivado, VCS, or EDA Playground.
 //=============================================================================
@@ -62,7 +62,7 @@ module tb_volttensor;
     // Test Sequence
     initial begin
         $display("==================================================================");
-        $display("   Starting VoltTensor SystemVerilog Simulation Benchmark");
+        $display("   Starting FP8-TensorCore-PowerIntegrity SystemVerilog Simulation Benchmark");
         $display("==================================================================");
 
         // Initialize signals
@@ -123,7 +123,7 @@ module tb_volttensor;
         $display("[Time %0.3f ns] Final current demand: %0d", $time, current_demand_norm);
 
         $display("\n==================================================================");
-        $display("   VoltTensor RTL Simulation Completed Successfully (Zero Errors)");
+        $display("   FP8-TensorCore-PowerIntegrity RTL Simulation Completed Successfully (Zero Errors)");
         $display("==================================================================");
         $finish;
     end

@@ -1,6 +1,6 @@
 //=============================================================================
 // Module: systolic_tile
-// Project: VoltTensor - Workload-Aware Proactive dI/dt Smoothing & Undervolting
+// Project: FP8-TensorCore-PowerIntegrity - Workload-Aware Proactive dI/dt Smoothing & Undervolting
 // Description: Parametric 4x4 Systolic Tensor Core Array for FP8 GEMM.
 //              Integrates dual-slack FP8 MACs with per-row activity gating.
 //=============================================================================

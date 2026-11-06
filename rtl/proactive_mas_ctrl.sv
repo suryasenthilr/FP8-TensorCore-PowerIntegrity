@@ -1,6 +1,6 @@
 //=============================================================================
 // Module: proactive_mas_ctrl
-// Project: VoltTensor - Workload-Aware Proactive dI/dt Smoothing & Undervolting
+// Project: FP8-TensorCore-PowerIntegrity - Workload-Aware Proactive dI/dt Smoothing & Undervolting
 // Description: Microarchitectural Activity Smoothing (MAS) Controller.
 //              Generates proactive ramp profiles and coordinates auxiliary charge
 //              injection to suppress inductive L*(di/dt) voltage droop.

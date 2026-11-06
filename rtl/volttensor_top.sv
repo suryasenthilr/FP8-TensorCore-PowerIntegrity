@@ -1,6 +1,6 @@
 //=============================================================================
 // Module: volttensor_top
-// Project: VoltTensor - Workload-Aware Proactive dI/dt Smoothing & Undervolting
+// Project: FP8-TensorCore-PowerIntegrity - Workload-Aware Proactive dI/dt Smoothing & Undervolting
 // Description: Top-Level Integrated GPU Compute Tile with VoltTensor Power
 //              Delivery Management, Proactive MAS, and Dynamic Droop Clamping.
 //=============================================================================

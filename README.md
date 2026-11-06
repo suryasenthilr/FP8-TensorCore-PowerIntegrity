@@ -1,6 +1,6 @@
-# VoltTensor: Hardware Power Integrity and Undervolting Architecture for FP8 Tensor Cores
+# FP8-TensorCore-PowerIntegrity: Hardware Power Integrity and Microarchitectural dI/dt Smoothing for FP8 Tensor Cores
 
-VoltTensor is a digital VLSI hardware design implementing microarchitectural current slew (dI/dt) smoothing and dual-slack arithmetic for deep learning tensor accelerators. The architecture features an on-chip lookahead activity controller, a replica delay-line timing slack sensor, and a 4x4 FP8 (E4M3) systolic array synthesized down to standard logic gates.
+FP8-TensorCore-PowerIntegrity is a digital VLSI hardware design implementing microarchitectural current slew (dI/dt) smoothing and dual-slack arithmetic for deep learning tensor accelerators. The architecture features an on-chip lookahead activity controller, a replica delay-line timing slack sensor, and a 4x4 FP8 (E4M3) systolic array synthesized down to standard logic gates.
 
 ---
 
@@ -43,7 +43,7 @@ VoltTensor is a digital VLSI hardware design implementing microarchitectural cur
 
 ## Microarchitectural Timing and Current Ramp
 
-When standard systolic arrays launch dense GEMM operations, activating 100% of processing elements on a single clock cycle produces extreme current slew (dI/dt). VoltTensor uses lookahead scheduling to stagger execution across a 4-cycle S-curve envelope while firing an auxiliary pre-charge pulse:
+When standard systolic arrays launch dense GEMM operations, activating 100% of processing elements on a single clock cycle produces extreme current slew (dI/dt). The FP8-TensorCore-PowerIntegrity architecture uses lookahead scheduling to stagger execution across a 4-cycle S-curve envelope while firing an auxiliary pre-charge pulse:
 
 ```text
 Clock Cycle:       |  t-1 (Forecast) |  t+0 (25%)   |  t+1 (50%)   |  t+2 (75%)   |  t+3 (100%)  |
@@ -129,7 +129,7 @@ The design is synthesized using the open-source Yosys Open SYnthesis Suite (Yosy
 ## Repository Structure
 
 ```
-VoltTensor/
+FP8-TensorCore-PowerIntegrity/
 ├── assets/                     # Verification and Transient Waveforms
 │   ├── di_dt_reduction.png     # Load current slew (dI/dt) flattening
 │   └── voltage_droop_comparison.png # Transient voltage droop clamping
@@ -183,7 +183,7 @@ vvp volttensor_sim.vvp
 
 ```text
 ==================================================================
-   Starting VoltTensor SystemVerilog Simulation Benchmark
+   Starting FP8-TensorCore-PowerIntegrity SystemVerilog Simulation Benchmark
 ==================================================================
 [Time 3000 ns] Reset de-asserted. Compute tile in IDLE state.
 [Time 3000 ns] Quiescent current demand: 15
@@ -207,7 +207,7 @@ vvp volttensor_sim.vvp
 [Time 11.000 ns] Final current demand: 15
 
 ==================================================================
-   VoltTensor RTL Simulation Completed Successfully (Zero Errors)
+   FP8-TensorCore-PowerIntegrity RTL Simulation Completed Successfully (Zero Errors)
 ==================================================================
 rtl/tb_volttensor.sv:128: $finish called at 11100 (1ps)
 ```
